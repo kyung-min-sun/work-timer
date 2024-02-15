@@ -81,9 +81,13 @@ export default function Home() {
       endTime: new Date(log.endTime),
     })) ?? [];
 
+  const today = new Date();
   const timeWorkedToday = safeLogs
     .filter(
-      (log) => log.startTime.setHours(0, 0, 0) == new Date().setHours(0, 0, 0),
+      (log) =>
+        log.startTime.getFullYear() == today.getFullYear() &&
+        log.startTime.getMonth() == today.getMonth() &&
+        log.startTime.getDate() == today.getDate(),
     )
     .reduce(
       (total, log) => total + (log.endTime.getTime() - log.startTime.getTime()),
