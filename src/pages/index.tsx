@@ -58,17 +58,37 @@ export default function Home() {
     }
   }, [logs]);
 
-  const formatTime = (start: Date, end: Date) => {
-    const diff = end.getTime() - start.getTime();
-    const hours = Math.floor(diff / (60 * 60 * 1000));
-    const minutes = Math.floor((diff % (60 * 60 * 1000)) / (60 * 1000)) % 60;
-    const seconds = Math.floor((diff % (60 * 60 * 1000)) / 1000) % 60;
+  const formatMiliseconds = (miliseconds: number) => {
+    const hours = Math.floor(miliseconds / (60 * 60 * 1000));
+    const minutes =
+      Math.floor((miliseconds % (60 * 60 * 1000)) / (60 * 1000)) % 60;
+    const seconds = Math.floor((miliseconds % (60 * 60 * 1000)) / 1000) % 60;
 
     const padDigits = (number: number) =>
       number < 10 ? `0${number}` : number.toString();
 
     return `${padDigits(hours)}:${padDigits(minutes)}:${padDigits(seconds)}`;
   };
+  const formatTime = (start: Date, end: Date) => {
+    const diff = end.getTime() - start.getTime();
+    return formatMiliseconds(diff);
+  };
+
+  // in case we don't deserialize the date properly from local storage
+  const safeLogs =
+    logs?.map((log) => ({
+      startTime: new Date(log.startTime),
+      endTime: new Date(log.endTime),
+    })) ?? [];
+
+  const timeWorkedToday = safeLogs
+    .filter(
+      (log) => log.startTime.setHours(0, 0, 0) == new Date().setHours(0, 0, 0),
+    )
+    .reduce(
+      (total, log) => total + (log.endTime.getTime() - log.startTime.getTime()),
+      0,
+    );
 
   return (
     <>
@@ -119,6 +139,10 @@ export default function Home() {
               </button>
             </>
           )}
+        </div>
+        <div>
+          <h2 className="font-bold">Total Time Worked Today</h2>
+          <p>Total: {formatMiliseconds(timeWorkedToday)}</p>
         </div>
         <div>
           <h2 className="font-bold">Past Logs</h2>
