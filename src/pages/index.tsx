@@ -85,17 +85,41 @@ export default function Home() {
     })) ?? [];
 
   const today = new Date();
+  const isSameDate = (d1: Date, d2: Date) =>
+    d1.getFullYear() == d2.getFullYear() &&
+    d1.getMonth() == d2.getMonth() &&
+    d1.getDate() == d2.getDate();
+
   const timeWorkedToday = safeLogs
-    .filter(
-      (log) =>
-        log.startTime.getFullYear() == today.getFullYear() &&
-        log.startTime.getMonth() == today.getMonth() &&
-        log.startTime.getDate() == today.getDate(),
-    )
+    .filter((log) => isSameDate(log.startTime, today))
     .reduce(
       (total, log) => total + (log.endTime.getTime() - log.startTime.getTime()),
       0,
     );
+
+  const logsByDay = safeLogs.reduce(
+    (days: { day: Date; logs: TimeLog[]; totalTime: number }[], timeLog) => {
+      const lastDay = days[days.length - 1];
+      const time = timeLog.endTime.getTime() - timeLog.startTime.getTime();
+      if (
+        days.length == 0 ||
+        !lastDay ||
+        !isSameDate(lastDay.day, timeLog.startTime)
+      ) {
+        return days.concat([
+          {
+            day: timeLog.startTime,
+            logs: [timeLog],
+            totalTime: time,
+          },
+        ]);
+      }
+      lastDay.logs.push(timeLog);
+      lastDay.totalTime += time;
+      return days;
+    },
+    [],
+  );
 
   return (
     <>
@@ -189,24 +213,52 @@ export default function Home() {
               }
             }}
           />
-          <ul className="flex flex-col gap-2">
+          <ul className="flex flex-col gap-4">
             {!logs && <li>None</li>}
-            {logs
-              ?.sort(
+            {logsByDay
+              .sort(
                 (l1, l2) =>
-                  new Date(l2.startTime).getTime() -
-                  new Date(l1.startTime).getTime(),
+                  new Date(l2.day).getTime() - new Date(l1.day).getTime(),
               )
-              .map((log, i) => (
+              .map((day, i) => (
                 <li key={i}>
-                  <p>
-                    Total:{" "}
-                    {formatTime(new Date(log.startTime), new Date(log.endTime))}
-                  </p>
-                  <p>End: {new Date(log.endTime).toLocaleString("en-US")}</p>
-                  <p>
-                    Start: {new Date(log.startTime).toLocaleString("en-US")}
-                  </p>
+                  <div className="w-fit border-b">
+                    <h4 className="font-bold">
+                      {day.day.toLocaleDateString("en-US")}
+                    </h4>
+                    <h4 className="text-sm">
+                      Total Time:{" "}
+                      <span className="font-bold">
+                        {formatMiliseconds(day.totalTime)}
+                      </span>
+                    </h4>
+                  </div>
+                  <ul className="flex flex-col gap-2 py-2">
+                    {day.logs
+                      ?.sort(
+                        (l1, l2) =>
+                          new Date(l2.startTime).getTime() -
+                          new Date(l1.startTime).getTime(),
+                      )
+                      .map((log, i) => (
+                        <li key={i} className="text-sm">
+                          <p>
+                            Total:{" "}
+                            {formatTime(
+                              new Date(log.startTime),
+                              new Date(log.endTime),
+                            )}
+                          </p>
+                          <p>
+                            End: {new Date(log.endTime).toLocaleString("en-US")}
+                          </p>
+                          <p>
+                            Start:{" "}
+                            {new Date(log.startTime).toLocaleString("en-US")}
+                          </p>
+                        </li>
+                      ))}
+                  </ul>
                 </li>
               ))}
           </ul>
