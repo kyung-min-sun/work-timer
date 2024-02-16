@@ -173,7 +173,7 @@ export default function Home() {
           </div>
           <input
             type="file"
-            onSubmit={async (e) => {
+            onInput={async (e) => {
               const files = e.currentTarget.files;
               if (!files) return;
               for (const file of files) {
