@@ -8,30 +8,12 @@ type TimeLog = {
 };
 
 export default function Home() {
-  const [timerState, setTimerState] = useState<
-    TimeLog & {
-      clicked: boolean;
-    }
-  >({
-    startTime: new Date(),
-    endTime: new Date(),
-    clicked: false,
-  });
+  const [timerStartTime, setTimerStartTime] = useState<Date>();
+  const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const [logs, setLogs] = useState<TimeLog[]>();
 
   useEffect(() => {
-    const timer = setInterval(
-      () =>
-        setTimerState(({ clicked, startTime, endTime }) => ({
-          clicked,
-          startTime: !clicked
-            ? new Date(startTime.getTime() + 1000)
-            : startTime,
-          endTime: clicked ? new Date(endTime.getTime() + 1000) : endTime,
-        })),
-      1000,
-    );
-
+    const timer = setInterval(() => setCurrentTime(new Date()), 100);
     return () => {
       clearInterval(timer);
     };
@@ -69,9 +51,30 @@ export default function Home() {
 
     return `${padDigits(hours)}:${padDigits(minutes)}:${padDigits(seconds)}`;
   };
+
   const formatTime = (start: Date, end: Date) => {
     const diff = end.getTime() - start.getTime();
     return formatMiliseconds(diff);
+  };
+
+  const formatLogsToCsv = (logs: TimeLog[]) => {
+    const csvContent = "data:text/csv;charset=utf-8,";
+    return csvContent.concat(
+      logs
+        .map(
+          ({ startTime, endTime }) =>
+            `${startTime.toString()},${endTime.toString()}`,
+        )
+        .join("\n"),
+    );
+  };
+
+  const parseLogsFromCsv = async (csvFile: File): Promise<[Date, Date][]> => {
+    const csvText = await csvFile.text();
+    const logs = csvText.split("\n").map((row) => row.split(","));
+    return logs.flatMap((log) =>
+      log[0] && log[1] ? [[new Date(log[0]), new Date(log[1])]] : [],
+    );
   };
 
   // in case we don't deserialize the date properly from local storage
@@ -107,36 +110,31 @@ export default function Home() {
       <main className="flex min-h-screen flex-col gap-8 p-4">
         <div className="flex flex-col gap-4">
           <h2 className="font-bold">Timer</h2>
-          {!timerState.clicked && (
+          {!timerStartTime && (
             <button
               className="border border-black p-2 font-medium"
-              onClick={() =>
-                setTimerState(() => ({
-                  startTime: new Date(),
-                  endTime: new Date(),
-                  clicked: true,
-                }))
-              }
+              onClick={() => setTimerStartTime(new Date())}
             >
               Start
             </button>
           )}
-          {timerState.clicked && (
+          {timerStartTime && (
             <>
-              <div className="font-medium">
-                {formatTime(timerState.startTime, timerState.endTime)}
-              </div>
+              {currentTime > timerStartTime && (
+                <div className="font-medium">
+                  {formatTime(timerStartTime, currentTime)}
+                </div>
+              )}
               <button
                 className="border border-black p-2 font-medium"
                 onClick={() => {
-                  setTimerState((timerState) => {
-                    setLogs((logs) => (logs ?? []).concat(timerState));
-                    return {
-                      startTime: new Date(),
+                  setLogs(
+                    (logs ?? []).concat({
+                      startTime: timerStartTime,
                       endTime: new Date(),
-                      clicked: false,
-                    };
-                  });
+                    }),
+                  );
+                  setTimerStartTime(undefined);
                 }}
               >
                 Stop
@@ -148,8 +146,49 @@ export default function Home() {
           <h2 className="font-bold">Total Time Worked Today</h2>
           <p>Total: {formatMiliseconds(timeWorkedToday)}</p>
         </div>
-        <div>
+        <div className="flex flex-col gap-2">
           <h2 className="font-bold">Past Logs</h2>
+          <div className="flex flex-row items-center gap-2">
+            <button
+              className="w-fit border border-black p-1 text-xs"
+              onClick={() => {
+                const text = formatLogsToCsv(logs ?? []);
+                const encodedUri = encodeURI(text);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", "my_data.csv");
+                link.click();
+              }}
+            >
+              Download CSV
+            </button>
+            <button
+              className="w-fit border border-black p-1 text-xs"
+              onClick={() => {
+                setLogs([]);
+              }}
+            >
+              Clear
+            </button>
+          </div>
+          <input
+            type="file"
+            onSubmit={async (e) => {
+              const files = e.currentTarget.files;
+              if (!files) return;
+              for (const file of files) {
+                const uploadedLogs = await parseLogsFromCsv(file);
+                setLogs((logs) =>
+                  logs?.concat(
+                    uploadedLogs.map(([startTime, endTime]) => ({
+                      startTime,
+                      endTime,
+                    })),
+                  ),
+                );
+              }
+            }}
+          />
           <ul className="flex flex-col gap-2">
             {!logs && <li>None</li>}
             {logs
