@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 
+import { FileField } from "~/components/fileField";
 import Head from "next/head";
+import { StyledButton } from "~/components/styledButton";
+import { StyledContainer } from "~/components/container";
 
 type TimeLog = {
   startTime: Date;
@@ -123,81 +126,92 @@ export default function Home() {
         />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <main className="flex min-h-screen flex-col gap-8 p-4">
+      <main className="flex flex-col gap-4">
         <div className="flex flex-col gap-4">
-          <h2 className="font-bold">Timer</h2>
-          {!timerStartTime && !newLog && (
-            <button
-              className="border border-black p-2 font-medium"
-              onClick={() => setTimerStartTime(new Date())}
-            >
-              Start
-            </button>
-          )}
-          {timerStartTime && (
-            <>
-              {currentTime > timerStartTime && (
-                <div className="font-medium">
-                  {formatTime(timerStartTime, currentTime)}
-                </div>
-              )}
-              <button
-                className="border border-black p-2 font-medium"
-                onClick={() => {
-                  setNewLog({
-                    startTime: timerStartTime,
-                    endTime: new Date(),
-                  });
-                  setTimerStartTime(undefined);
-                }}
-              >
-                Stop
-              </button>
-            </>
-          )}
-          {newLog && (
-            <>
-              <div className="flex flex-col gap-4">
-                <h3 className="font-bold">New Time Log</h3>
-                <div>
-                  <p>End: {newLog.endTime.toLocaleString("en-US")}</p>
-                  <p>Start: {newLog.startTime.toLocaleString("en-US")}</p>
-                </div>
-                <p className="flex flex-col">
-                  <h4 className="font-medium">Note (Optional):</h4>
-                  <textarea
-                    className="border p-2 text-xs"
-                    value={newLog.notes}
-                    onChange={(e) =>
-                      setNewLog({
-                        ...newLog,
-                        notes: e.target.value,
-                      })
-                    }
-                  />
-                </p>
-                <button
-                  className="w-full border border-black p-2"
+          <h2 className="font-semibold">Timer</h2>
+          <StyledContainer>
+            {!timerStartTime && !newLog && (
+              <StyledButton onClick={() => setTimerStartTime(new Date())}>
+                Start
+              </StyledButton>
+            )}
+            {timerStartTime && (
+              <>
+                {currentTime > timerStartTime && (
+                  <div className="font-medium">
+                    {formatTime(timerStartTime, currentTime)}
+                  </div>
+                )}
+                <StyledButton
                   onClick={() => {
-                    setLogs((logs) => (logs ?? []).concat(newLog));
-                    setNewLog(undefined);
+                    setNewLog({
+                      startTime: timerStartTime,
+                      endTime: new Date(),
+                    });
+                    setTimerStartTime(undefined);
                   }}
                 >
-                  Save
-                </button>
-              </div>
-            </>
-          )}
+                  Stop
+                </StyledButton>
+              </>
+            )}
+            {newLog && (
+              <>
+                <div className="flex flex-col gap-4">
+                  <h3 className="text-sm font-medium">New Time Log</h3>
+                  <div className="flex flex-row items-center gap-2">
+                    <p className="font-semibold">
+                      {formatTime(newLog.startTime, newLog.endTime)}
+                    </p>
+                    <p className="text-xs">
+                      {newLog.endTime.toLocaleTimeString("en-US", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}{" "}
+                      -{" "}
+                      {newLog.startTime.toLocaleTimeString("en-US", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                  </div>
+                  <p className="flex flex-col gap-2">
+                    <h4 className="text-xs font-medium">Note (Optional)</h4>
+                    <textarea
+                      className="resize-none rounded-md border bg-white/60 p-2 text-xs"
+                      value={newLog.notes}
+                      onChange={(e) =>
+                        setNewLog({
+                          ...newLog,
+                          notes: e.target.value,
+                        })
+                      }
+                    />
+                  </p>
+                  <StyledButton
+                    onClick={() => {
+                      setLogs((logs) => (logs ?? []).concat(newLog));
+                      setNewLog(undefined);
+                    }}
+                  >
+                    Save
+                  </StyledButton>
+                </div>
+              </>
+            )}
+          </StyledContainer>
         </div>
-        <div className="">
-          <h2 className="font-bold">Total Time Worked Today</h2>
-          <p>Total: {formatMiliseconds(timeWorkedToday)}</p>
-        </div>
-        <div className="flex flex-col gap-2">
-          <h2 className="font-bold">Past Logs</h2>
+        <StyledContainer>
+          <h2 className="text-sm font-medium">Time Today</h2>
+          <p className="text-md font-semibold">
+            {formatMiliseconds(timeWorkedToday)}
+          </p>
+        </StyledContainer>
+        <StyledContainer className="gap-2">
+          <h2 className="text-sm font-medium">Past Logs</h2>
           <div className="flex flex-row items-center gap-2">
-            <button
-              className="w-fit border border-black p-1 text-xs"
+            <StyledButton
+              className="text-xs"
               onClick={() => {
                 const text = formatLogsToString(logs ?? []);
                 const encodedUri = encodeURI(text);
@@ -208,28 +222,29 @@ export default function Home() {
               }}
             >
               Download CSV
-            </button>
-            <button
-              className="w-fit border border-black p-1 text-xs"
+            </StyledButton>
+            <StyledButton
+              className="text-xs"
               onClick={() => {
                 setLogs([]);
               }}
             >
               Clear
-            </button>
+            </StyledButton>
+            <FileField
+              buttonClassName="bg-slate-300 hover:bg-slate-400/45 text-xs px-2 py-1"
+              prompt={"Upload your file"}
+              onUpload={async (file) => {
+                try {
+                  const uploadedLogs = await parseLogsFromFile(file);
+                  setLogs((logs) => logs?.concat(uploadedLogs));
+                } catch (e) {
+                  alert(e);
+                }
+              }}
+            />
           </div>
-          <input
-            type="file"
-            onInput={async (e) => {
-              const files = e.currentTarget.files;
-              if (!files) return;
-              for (const file of files) {
-                const uploadedLogs = await parseLogsFromFile(file);
-                setLogs((logs) => logs?.concat(uploadedLogs));
-              }
-            }}
-          />
-          <ul className="flex flex-col gap-4">
+          <ul className="flex flex-col gap-4 py-2">
             {!logs && <li>None</li>}
             {logsByDay
               .sort(
@@ -238,15 +253,14 @@ export default function Home() {
               )
               .map((day, i) => (
                 <li key={i}>
-                  <div className="w-fit border-b">
-                    <h4 className="font-bold">
-                      {day.day.toLocaleDateString("en-US")}
-                    </h4>
-                    <h4 className="text-sm">
-                      Total Time:{" "}
-                      <span className="font-bold">
+                  <div className="flex w-fit flex-row items-center gap-2 border-b">
+                    <h4 className="text-md">
+                      <span className="font-medium">
                         {formatMiliseconds(day.totalTime)}
                       </span>
+                    </h4>
+                    <h4 className="text-sm">
+                      {day.day.toLocaleDateString("en-US")}
                     </h4>
                   </div>
                   <ul className="flex flex-col gap-2 py-2">
@@ -257,29 +271,37 @@ export default function Home() {
                           new Date(l1.startTime).getTime(),
                       )
                       .map((log, i) => (
-                        <li key={i} className="text-sm">
-                          <p>
-                            Total:{" "}
-                            {formatTime(
-                              new Date(log.startTime),
-                              new Date(log.endTime),
-                            )}
-                          </p>
-                          <p>
-                            End: {new Date(log.endTime).toLocaleString("en-US")}
-                          </p>
-                          <p>
-                            Start:{" "}
-                            {new Date(log.startTime).toLocaleString("en-US")}
-                          </p>
-                          {log.notes && <p>Notes: {log.notes}</p>}
+                        <li
+                          key={i}
+                          className="flex flex-col gap-1 rounded-md bg-slate-300/70 p-2 text-xs"
+                        >
+                          <div className="flex flex-row items-center gap-2">
+                            <p className="text-sm font-medium">
+                              {formatTime(
+                                new Date(log.startTime),
+                                new Date(log.endTime),
+                              )}
+                            </p>
+                            <p className="text-xs">
+                              {log.endTime.toLocaleTimeString("en-US", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}{" "}
+                              -{" "}
+                              {log.startTime.toLocaleTimeString("en-US", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </p>
+                          </div>
+                          {log.notes && <p>{log.notes}</p>}
                         </li>
                       ))}
                   </ul>
                 </li>
               ))}
           </ul>
-        </div>
+        </StyledContainer>
       </main>
     </>
   );
