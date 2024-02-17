@@ -168,12 +168,12 @@ export default function Home() {
                       {formatTime(newLog.startTime, newLog.endTime)}
                     </p>
                     <p className="text-xs">
-                      {newLog.endTime.toLocaleTimeString("en-US", {
+                      {newLog.startTime.toLocaleTimeString("en-US", {
                         hour: "2-digit",
                         minute: "2-digit",
                       })}{" "}
                       -{" "}
-                      {newLog.startTime.toLocaleTimeString("en-US", {
+                      {newLog.endTime.toLocaleTimeString("en-US", {
                         hour: "2-digit",
                         minute: "2-digit",
                       })}
@@ -290,12 +290,12 @@ export default function Home() {
                               )}
                             </p>
                             <p className="text-xs">
-                              {log.endTime.toLocaleTimeString("en-US", {
+                              {log.startTime.toLocaleTimeString("en-US", {
                                 hour: "2-digit",
                                 minute: "2-digit",
                               })}{" "}
                               -{" "}
-                              {log.startTime.toLocaleTimeString("en-US", {
+                              {log.endTime.toLocaleTimeString("en-US", {
                                 hour: "2-digit",
                                 minute: "2-digit",
                               })}
