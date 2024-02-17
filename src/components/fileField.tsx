@@ -1,46 +1,31 @@
-import { ButtonBase } from "@mui/material";
-import { FileUploader } from "react-drag-drop-files";
-import { FolderOpenOutlined } from "@mui/icons-material";
-import { twMerge } from "tailwind-merge";
+import { Upload } from "@mui/icons-material";
 
-export function FileField({
-  className,
-  buttonClassName,
+export function UploadFileButton({
   onUpload,
-  prompt,
 }: {
   className?: string;
   buttonClassName?: string;
-  prompt?: string;
-  onUpload: (file: File) => void;
+  onUpload: (file: File[]) => void;
 }) {
-  const handleChange = (file: File) => {
+  const handleChange = (file: File[]) => {
     onUpload(file);
   };
 
   return (
-    <div
-      className={`w-fit rounded-md border border-gray-300 focus:outline-none ${className}`}
+    <label
+      className="rounded-md bg-slate-300 px-2 hover:bg-slate-400/45"
+      style={{ paddingTop: 6, paddingBottom: 6 }}
     >
-      <FileUploader
-        handleChange={handleChange}
-        name="file"
-        hoverTitle=" "
-        dropMessageStyle={{
-          opacity: 0.2,
-        }}
-      >
-        <ButtonBase
-          className={twMerge(
-            `flex w-full flex-row items-center gap-2 
-            p-2 hover:bg-gray-200 focus:outline-none`,
-            buttonClassName,
-          )}
-        >
-          <FolderOpenOutlined />
-          <span className="font-medium">{prompt ?? "Drag your file"}</span>
-        </ButtonBase>
-      </FileUploader>
-    </div>
+      <Upload fontSize="small" />
+      <input
+        type="file"
+        className="hidden"
+        onChange={(e) => console.log(e.target.value)}
+        onInput={(e) =>
+          e.currentTarget.files &&
+          handleChange(Array.from(e.currentTarget.files))
+        }
+      />
+    </label>
   );
 }

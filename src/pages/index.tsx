@@ -1,9 +1,10 @@
+import { AccessTime, DeleteOutline, Download } from "@mui/icons-material";
 import { useEffect, useState } from "react";
 
-import { FileField } from "~/components/fileField";
 import Head from "next/head";
 import { StyledButton } from "~/components/styledButton";
 import { StyledContainer } from "~/components/container";
+import { UploadFileButton } from "~/components/fileField";
 
 type TimeLog = {
   startTime: Date;
@@ -119,7 +120,7 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>Work Timer</title>
+        <title>work timer</title>
         <meta
           name="description"
           content="this is a work timer to measure how much i work"
@@ -128,11 +129,14 @@ export default function Home() {
       </Head>
       <main className="flex flex-col gap-4">
         <div className="flex flex-col gap-4">
-          <h2 className="font-semibold">Timer</h2>
+          <div className="flex w-fit flex-row items-center gap-2 rounded-md bg-slate-200 p-2">
+            <AccessTime />
+            <h1 className="font-medium">work</h1>
+          </div>
           <StyledContainer>
             {!timerStartTime && !newLog && (
               <StyledButton onClick={() => setTimerStartTime(new Date())}>
-                Start
+                start
               </StyledButton>
             )}
             {timerStartTime && (
@@ -151,14 +155,14 @@ export default function Home() {
                     setTimerStartTime(undefined);
                   }}
                 >
-                  Stop
+                  stop
                 </StyledButton>
               </>
             )}
             {newLog && (
               <>
                 <div className="flex flex-col gap-4">
-                  <h3 className="text-sm font-medium">New Time Log</h3>
+                  <h3 className="text-sm font-medium">new time log</h3>
                   <div className="flex flex-row items-center gap-2">
                     <p className="font-semibold">
                       {formatTime(newLog.startTime, newLog.endTime)}
@@ -176,7 +180,7 @@ export default function Home() {
                     </p>
                   </div>
                   <p className="flex flex-col gap-2">
-                    <h4 className="text-xs font-medium">Note (Optional)</h4>
+                    <h4 className="text-xs font-medium">note (optional)</h4>
                     <textarea
                       className="resize-none rounded-md border bg-white/60 p-2 text-xs"
                       value={newLog.notes}
@@ -194,7 +198,7 @@ export default function Home() {
                       setNewLog(undefined);
                     }}
                   >
-                    Save
+                    save
                   </StyledButton>
                 </div>
               </>
@@ -202,47 +206,50 @@ export default function Home() {
           </StyledContainer>
         </div>
         <StyledContainer>
-          <h2 className="text-sm font-medium">Time Today</h2>
+          <h2 className="text-sm font-medium">time today</h2>
           <p className="text-md font-semibold">
             {formatMiliseconds(timeWorkedToday)}
           </p>
         </StyledContainer>
         <StyledContainer className="gap-2">
-          <h2 className="text-sm font-medium">Past Logs</h2>
+          <h2 className="text-sm font-medium">past logs</h2>
           <div className="flex flex-row items-center gap-2">
             <StyledButton
-              className="text-xs"
               onClick={() => {
                 const text = formatLogsToString(logs ?? []);
-                const encodedUri = encodeURI(text);
+                console.log(text);
+                const encodedUri = encodeURI(
+                  "data:text/json;charset=utf-8," + text,
+                );
                 const link = document.createElement("a");
                 link.setAttribute("href", encodedUri);
                 link.setAttribute("download", "logs.json");
                 link.click();
               }}
             >
-              Download CSV
+              <Download fontSize="small" />
             </StyledButton>
-            <StyledButton
-              className="text-xs"
-              onClick={() => {
-                setLogs([]);
-              }}
-            >
-              Clear
-            </StyledButton>
-            <FileField
-              buttonClassName="bg-slate-300 hover:bg-slate-400/45 text-xs px-2 py-1"
-              prompt={"Upload your file"}
-              onUpload={async (file) => {
+            <UploadFileButton
+              onUpload={async (files) => {
                 try {
-                  const uploadedLogs = await parseLogsFromFile(file);
-                  setLogs((logs) => logs?.concat(uploadedLogs));
+                  const uploadedLogs = await Promise.all(
+                    files.map((file) => parseLogsFromFile(file)),
+                  );
+                  setLogs((logs) => logs?.concat(uploadedLogs.flat()));
                 } catch (e) {
                   alert(e);
                 }
               }}
             />
+            <div className="flex flex-1 flex-row place-content-end">
+              <StyledButton
+                onClick={() => {
+                  setLogs([]);
+                }}
+              >
+                <DeleteOutline fontSize="small" />
+              </StyledButton>
+            </div>
           </div>
           <ul className="flex flex-col gap-4 py-2">
             {!logs && <li>None</li>}
