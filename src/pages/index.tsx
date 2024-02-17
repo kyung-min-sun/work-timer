@@ -5,11 +5,13 @@ import Head from "next/head";
 type TimeLog = {
   startTime: Date;
   endTime: Date;
+  notes?: string;
 };
 
 export default function Home() {
   const [timerStartTime, setTimerStartTime] = useState<Date>();
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
+  const [newLog, setNewLog] = useState<TimeLog>();
   const [logs, setLogs] = useState<TimeLog[]>();
 
   useEffect(() => {
@@ -29,6 +31,7 @@ export default function Home() {
           setLogs(newLogs ?? []);
         }
       } catch (e) {
+        setLogs([]);
         console.log(e);
       }
     } else {
@@ -57,29 +60,18 @@ export default function Home() {
     return formatMiliseconds(diff);
   };
 
-  const formatLogsToCsv = (logs: TimeLog[]) => {
-    const csvContent = "data:text/csv;charset=utf-8,";
-    return csvContent.concat(
-      logs
-        .map(
-          ({ startTime, endTime }) =>
-            `${startTime.toString()},${endTime.toString()}`,
-        )
-        .join("\n"),
-    );
+  const formatLogsToString = (logs: TimeLog[]) => {
+    return JSON.stringify(logs);
   };
 
-  const parseLogsFromCsv = async (csvFile: File): Promise<[Date, Date][]> => {
-    const csvText = await csvFile.text();
-    const logs = csvText.split("\n").map((row) => row.split(","));
-    return logs.flatMap((log) =>
-      log[0] && log[1] ? [[new Date(log[0]), new Date(log[1])]] : [],
-    );
+  const parseLogsFromFile = async (csvFile: File): Promise<TimeLog[]> => {
+    return JSON.parse(await csvFile.text()) as TimeLog[];
   };
 
   // in case we don't deserialize the date properly from local storage
   const safeLogs =
     logs?.map((log) => ({
+      ...log,
       startTime: new Date(log.startTime),
       endTime: new Date(log.endTime),
     })) ?? [];
@@ -134,7 +126,7 @@ export default function Home() {
       <main className="flex min-h-screen flex-col gap-8 p-4">
         <div className="flex flex-col gap-4">
           <h2 className="font-bold">Timer</h2>
-          {!timerStartTime && (
+          {!timerStartTime && !newLog && (
             <button
               className="border border-black p-2 font-medium"
               onClick={() => setTimerStartTime(new Date())}
@@ -152,12 +144,10 @@ export default function Home() {
               <button
                 className="border border-black p-2 font-medium"
                 onClick={() => {
-                  setLogs(
-                    (logs ?? []).concat({
-                      startTime: timerStartTime,
-                      endTime: new Date(),
-                    }),
-                  );
+                  setNewLog({
+                    startTime: timerStartTime,
+                    endTime: new Date(),
+                  });
                   setTimerStartTime(undefined);
                 }}
               >
@@ -165,8 +155,41 @@ export default function Home() {
               </button>
             </>
           )}
+          {newLog && (
+            <>
+              <div className="flex flex-col gap-4">
+                <h3 className="font-bold">New Time Log</h3>
+                <div>
+                  <p>End: {newLog.endTime.toLocaleString("en-US")}</p>
+                  <p>Start: {newLog.startTime.toLocaleString("en-US")}</p>
+                </div>
+                <p className="flex flex-col">
+                  <h4 className="font-medium">Note (Optional):</h4>
+                  <textarea
+                    className="border p-2 text-xs"
+                    value={newLog.notes}
+                    onChange={(e) =>
+                      setNewLog({
+                        ...newLog,
+                        notes: e.target.value,
+                      })
+                    }
+                  />
+                </p>
+                <button
+                  className="w-full border border-black p-2"
+                  onClick={() => {
+                    setLogs((logs) => (logs ?? []).concat(newLog));
+                    setNewLog(undefined);
+                  }}
+                >
+                  Save
+                </button>
+              </div>
+            </>
+          )}
         </div>
-        <div>
+        <div className="">
           <h2 className="font-bold">Total Time Worked Today</h2>
           <p>Total: {formatMiliseconds(timeWorkedToday)}</p>
         </div>
@@ -176,11 +199,11 @@ export default function Home() {
             <button
               className="w-fit border border-black p-1 text-xs"
               onClick={() => {
-                const text = formatLogsToCsv(logs ?? []);
+                const text = formatLogsToString(logs ?? []);
                 const encodedUri = encodeURI(text);
                 const link = document.createElement("a");
                 link.setAttribute("href", encodedUri);
-                link.setAttribute("download", "my_data.csv");
+                link.setAttribute("download", "logs.json");
                 link.click();
               }}
             >
@@ -201,15 +224,8 @@ export default function Home() {
               const files = e.currentTarget.files;
               if (!files) return;
               for (const file of files) {
-                const uploadedLogs = await parseLogsFromCsv(file);
-                setLogs((logs) =>
-                  logs?.concat(
-                    uploadedLogs.map(([startTime, endTime]) => ({
-                      startTime,
-                      endTime,
-                    })),
-                  ),
-                );
+                const uploadedLogs = await parseLogsFromFile(file);
+                setLogs((logs) => logs?.concat(uploadedLogs));
               }
             }}
           />
@@ -256,6 +272,7 @@ export default function Home() {
                             Start:{" "}
                             {new Date(log.startTime).toLocaleString("en-US")}
                           </p>
+                          {log.notes && <p>Notes: {log.notes}</p>}
                         </li>
                       ))}
                   </ul>
